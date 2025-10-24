@@ -1,0 +1,1 @@
+_acme-challenge.netsec.ethz.ch. 300 IN TXT "Z30mEUA1R8zXilwZXGGNpmPDbvCKuDcY-u-GoSsbDOQ.34LXd404sHD5Db1fBUCXKjBzCmqLntwBHoPo1ChrRUI"

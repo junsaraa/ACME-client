@@ -1,0 +1,3 @@
+dnslib==0.9.25
+cryptography
+requests
