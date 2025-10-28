@@ -41,7 +41,6 @@ from requests.structures import CaseInsensitiveDict
 
 
 nonce_retrieved = {}
-# LOCAL_DOMAIN = "http://localhost:5002"
 PEBBLE_CERTIFICATE_PATH = 'project/pebble.minica.pem'
 
 def generate_priv_pub_key():
@@ -63,12 +62,11 @@ def jws_generation(private_key, signing_input):
     signature = private_key.sign(signing_input, ec.ECDSA(hashes.SHA256()))
     sig_encoded  = base64.urlsafe_b64encode(signature).rstrip(b'=').decode('utf-8')
 
-    #4. signature is R||S
     r,s = decode_dss_signature(signature)
     r_byte = r.to_bytes(32, byteorder='big')
     s_byte = s.to_bytes(32, byteorder='big')
  
-    JWS_Signature = r_byte+s_byte  #f"{r}{s}".encode('utf-8')
+    JWS_Signature = r_byte+s_byte
     JWS_Signature_tob64 = base64.urlsafe_b64encode(JWS_Signature).rstrip(b'=').decode('utf-8')
 
     return JWS_Signature_tob64
@@ -84,7 +82,6 @@ def jsonify(input):
 
 def nonce_creator(length=32):
     nonce_bytes = os.urandom(length)
-    #encoded_nonce = base64.urlsafe_b64encode(nonce_bytes).decode('utf-8').rstrip("=")
 
     return nonce_bytes
 
@@ -94,11 +91,6 @@ def urlsafe_base64_encoding(input):
     urlsafe_input = base64.urlsafe_b64encode(jsonBytes).rstrip(b'=')
     return urlsafe_input.decode('utf-8')
 
-
-# def check_wildcard(domain): 
-#     if domain.startswith('*.'): 
-#         return domain
-#     else:
 
 def acme_get_directory(directory):
 
@@ -139,66 +131,14 @@ def acme_create_account(newNonce, directory_res ):
     payload ={"termsOfServiceAgreed":True}
 
 
-    """
-
-    payload_json = json.dumps(payload)
-
-    # Step 2: Encode the JSON string to UTF-8 bytes
-    payload_bytes = payload_json.encode('utf-8')
-
-    # Step 3: Base64 URL encode the bytes
-    encoded_payload = base64.urlsafe_b64encode(payload_bytes).rstrip(b'=').decode('utf-8')
-    
-    #encoded_header = urlsafe_base64_encoding(protected)
-    data = '{"alg":"ES256","jwk":{"kty":"EC","crv":"P-256","x":base64.urlsafe_b64encode(x).decode(\'utf-8\').rstrip("="),"y":base64.urlsafe_b64encode(y).decode(\'utf-8\').rstrip("=")},"nonce":acc_nonce,"url":createAccount_url}'
-    header_utf8_bytes = data.encode('utf-8')  # Convert to UTF-8 bytes
-    encoded_header = base64.urlsafe_b64encode(header_utf8_bytes).rstrip(b'=').decode('utf-8')
-    # #encoded_payload = urlsafe_base64_encoding(payload)
-    # encoded_payload = base64.urlsafe_b64encode(json.loads(payload)).rstrip(b'=')
-
-    # payload_json = jsonify(payload) 
-
-    # payload_dict = json.loads(payload_json)  # Ensure payload is a JSON string
-    # payload_bytes = json.dumps(payload_json).encode('utf-8')
-    
-    
-    # Step 3: Base64 URL encode the protected header and payload
-    # encoded_header = base64.urlsafe_b64encode(json.dumps(protected).encode('utf-8'))
-    # encoded_payload = urlsafe_base64_encoding(payload)
-    
-    
-    """
     encoded_header = urlsafe_base64_encoding(protected)
     encoded_payload = urlsafe_base64_encoding(payload)
 
 
-    ##signature generation
 
-    #1. signature is JWS Signing Input
     sig_in = f"{encoded_header}.{encoded_payload}".encode('utf-8')
 
 
-    """
-    
-        # #2. signature is JWS Signing Input signed with ECDSA
-    # signature = key_priv.sign(sig_in, ec.ECDSA(hashes.SHA256()))
-    # sig_encoded  = base64.urlsafe_b64encode(signature).rstrip(b'=').decode('utf-8')
-
-    # #4. signature is R||S
-    # r,s = decode_dss_signature(signature)
-    # r_byte = r.to_bytes(32, byteorder='big')#f"{r}".encode('utf-8')
-    # s_byte = s.to_bytes(32, byteorder='big') #f"{s}".encode('utf-8')
-    # #print(r,s)
-    # #print(r_byte,s_byte)
- 
-    # JWS_Signature = r_byte+s_byte  #f"{r}{s}".encode('utf-8')
-
-
-
-
-    # JWS_Signature_tob64 = base64.urlsafe_b64encode(JWS_Signature).rstrip(b'=').decode('utf-8')
-    # # jws = f"{encoded_header}.{encoded_payload}.{JWS_Signature_tob64}".encode('utf-8')
-    """
 
     JWS_Signature_tob64 = jws_generation(key_priv, sig_in)
  
@@ -234,7 +174,6 @@ def acme_post_order(directory, accountResponse, newAccHeaders,  key_priv, key_pu
                "url":newOrder_url}
     payload ={"identifiers": []}
 
-    #domains = ["first", "second"]
 
     for i in domains:
         print(i)
@@ -277,9 +216,7 @@ def polling_multi(orderResponse, newAccHeaders, newOrderHeaders, key_priv, domai
     for i, domain in enumerate(domains):
         print("for loop i and domain", i, domain)
         if i==0:
-            # if domains == '*example.com':
-            #     validated_domains.append('*example.com')
-            
+
             
             authz_body, authz_header, my_auth = acme_authorization_order(orderResponse, newAccHeaders, newOrderHeaders, key_priv, authorizationURL[i])
             challenging_text, challenging_header  = challenge_relay(chall_type, newOrder, authz_body, authz_header, newAccHeaders, priv, pub, my_auth)
@@ -287,41 +224,21 @@ def polling_multi(orderResponse, newAccHeaders, newOrderHeaders, key_priv, domai
             print("challenging_text", challenging_text)
             print("challenging_header", challenging_header)
             identifier = challenging_text.get('identifier')
-            print("identifier", identifier)
-            print(type(identifier))
+
             validated_domains.append(identifier.get('value'))
-            print("new_header")
-            print(new_header)
-            
     
         else:
-            
-            print("am I here")
-            print(new_header)
-
-            print("order response : ", orderResponse)
-            print("order response : ", newAccHeaders)
-
-            #newOrderHeaders['Replay-nonce'] = json.loads(jsonify(new_header)).get('Replay-Nonce')
             authz_body, authz_header, my_auth = acme_authorization_order(orderResponse, newAccHeaders, new_header, key_priv, authorizationURL[i])
             challenging_text, challenging_header  = challenge_relay(chall_type, newOrder, authz_body, authz_header, newAccHeaders, priv, pub, my_auth)
             new_header = challenging_header
-            print("challenging_text", challenging_text)
-            print("challenging_header", challenging_header)
+
             identifier = challenging_text.get('identifier')
-            print("identifier", identifier)
-            print(type(identifier))
+
             if domain.startswith('*.'): 
                 validated_domains.append(domain)
             else:
                 validated_domains.append(identifier.get('value'))
-            print("new_header")
-            print(new_header)
-        
 
-        
-
-    print("validated domains", validated_domains)
     return challenging_text, challenging_header, validated_domains
 
 
@@ -329,12 +246,9 @@ def polling_multi(orderResponse, newAccHeaders, newOrderHeaders, key_priv, domai
 def acme_authorization_order(orderResponse, newAccHeaders, newOrderHeaders, key_priv, authorizationURL):
 
     previousNonce = json.loads(jsonify(newOrderHeaders)).get('Replay-Nonce') 
-    #authorization = json.loads(jsonify(orderResponse)).get('authorizations')
     locationKid = json.loads(jsonify(newAccHeaders)).get('Location')
     
-    my_auth = authorizationURL #authorization[0]
-    print("my_auth &&&&&&&&&&", my_auth)
-
+    my_auth = authorizationURL
 
     headers = {"Content-type":"application/jose+json"}
 
@@ -368,36 +282,23 @@ def http01_challenge(newOrder, newAuthz, newAuthzHeaders, newAccHeaders, key_pri
         
         x,y = x_y_publicNum(key_pub)
 
-        # authorization = json.loads(jsonify(newOrder)).get('authorizations')
-    
-        my_auth = authorizationURL#authorization[0]
-
-        ########Thumbprint generation##########
         jwk={"crv":"P-256","kty":"EC","x":base64.urlsafe_b64encode(x).decode('utf-8').rstrip("="),"y":base64.urlsafe_b64encode(y).decode('utf-8').rstrip("=")}
 
         thumbprint = json.dumps(jwk, separators=(',', ':'), sort_keys=True).encode()
         digest= hashes.Hash(hashes.SHA256())
         digest.update(thumbprint)
-        thumbprint = digest.finalize()#base64.urlsafe_b64encode(thumbprint).rstrip(b'=').decode('utf-8')
+        thumbprint = digest.finalize()
         thumbprint = base64.urlsafe_b64encode(thumbprint).rstrip(b'=').decode('utf-8')
-
-    
-
-        print("newAuthz", newAuthz)
 
 
         newAuthzJson = json.loads(jsonify(newAuthz))
-        print("newAuthJson @@@@@@@", newAuthzJson)
 
         findHttp01Challenge = next((challenge for challenge in newAuthzJson['challenges'] if challenge['type'] == 'http-01'), None)
-        print("debug findHttp01Challenge : ", findHttp01Challenge)
         http01token = findHttp01Challenge.get('token')
         challengeURL = findHttp01Challenge.get('url')
-        print("debug challengeURL : ", challengeURL)
 
         keyAuthorization = f"{http01token}.{thumbprint}"
 
-        #print("keyaauth", keyAuthorization)
         resource = keyAuthorization.encode('utf-8').decode()
 
         f = open("httpResource.txt", "w")
@@ -419,10 +320,7 @@ def http01_challenge(newOrder, newAuthz, newAuthzHeaders, newAccHeaders, key_pri
         encoded_payload = urlsafe_base64_encoding(payload)
 
 
-        #1.JWS Signing Input
         sig_in = f"{encoded_header}.{encoded_payload}".encode('utf-8')
-
-
         JWS_Signature_tob64 = jws_generation(key_priv, sig_in)
         jws_final = json.dumps({"protected":encoded_header,"payload":encoded_payload,"signature":JWS_Signature_tob64})
         jws_final = jws_final.replace(" ", "") 
@@ -431,9 +329,6 @@ def http01_challenge(newOrder, newAuthz, newAuthzHeaders, newAccHeaders, key_pri
 
 
         handler_post = requests.post(challengeURL, headers = headers, data=jws_final, verify=PEBBLE_CERTIFICATE_PATH)
-        print("handler_get_headers", handler_post.headers)
-        print("handler_get", handler_post.text) #not returning wildcard's address but original one
-        print("handler_post", handler_post)
 
         newNonce = json.loads(jsonify(handler_post.headers)).get('Replay-Nonce') 
 
@@ -464,7 +359,6 @@ def http01_challenge(newOrder, newAuthz, newAuthzHeaders, newAccHeaders, key_pri
             while_timeout = time.time() +10
             while http01Validation_request.json().get('status') is not "valid" and time.time() < while_timeout:
 
-                #print("http01Validation_request",http01Validation_request.json() )
                 newNonce2  = json.loads(jsonify(http01Validation_request.headers)).get('Replay-Nonce')
 
                 headers = {"Content-type":"application/jose+json"}
@@ -482,38 +376,7 @@ def http01_challenge(newOrder, newAuthz, newAuthzHeaders, newAccHeaders, key_pri
                 jws_final = json.dumps({"protected":encoded_header,"payload":payload,"signature":JWS_Signature_tob64})
                 jws_final = jws_final.replace(" ", "")
                 http01Validation_request = requests.post(url=authorizationURL, headers = headers, data=jws_final, verify=PEBBLE_CERTIFICATE_PATH)
-            """ 
-
-           while_timeout = time.time() + 2
-            
-            while http01Validation_request.json().get('status') is not "valid" and time.time() < while_timeout:
-                print(http01Validation_request.json())
-
-
-                head = http01Validation_request.headers
-
-                previous_request_header = jsonify(head)
-
-                protected={"alg":"ES256",
-                    "kid":locationKid,
-                    "nonce": json.loads(previous_request_header).get('Replay-Nonce') ,
-                    "url":challengeURL}
-            
-                payload = ""
-                encoded_header = urlsafe_base64_encoding(protected)
-                #encoded_payload = urlsafe_base64_encoding(payload)
-
-                sig_in = f"{encoded_header}.{payload}".encode('utf-8')
-                JWS_Signature_tob64 = jws_generation(key_priv, sig_in)
-
-                jws_final = json.dumps({"protected":encoded_header,"payload":payload,"signature":JWS_Signature_tob64})
-                jws_final = jws_final.replace(" ", "") 
-
-
-                http01Validation_request = requests.post(url=challengeURL, headers = headers, data=jws_final, verify=PEBBLE_CERTIFICATE_PATH)
-                """
-
-            
+                 
 
             print(f"http01Validation_request Status Code: {http01Validation_request.status_code}")
             print(f"http01Validation_request Response Body: {http01Validation_request.headers}")
@@ -532,7 +395,7 @@ def dns01_challenge(newOrder, newAuthz, newAuthzHeaders, newAccHeaders, key_priv
 
         authorization = json.loads(jsonify(newOrder)).get('authorizations')
     
-        my_auth = authorizationURL#authorization[0]
+        my_auth = authorizationURL
         print("DEBUG auth url passed to the ard", my_auth)
 
         print("DEBUG new Authz : ", newAuthz )
@@ -546,16 +409,13 @@ def dns01_challenge(newOrder, newAuthz, newAuthzHeaders, newAccHeaders, key_priv
         thumbprint = json.dumps(jwk, separators=(',', ':'), sort_keys=True).encode()
         digest= hashes.Hash(hashes.SHA256())
         digest.update(thumbprint)
-        thumbprint = digest.finalize()#base64.urlsafe_b64encode(thumbprint).rstrip(b'=').decode('utf-8')
+        thumbprint = digest.finalize()
         thumbprint = base64.urlsafe_b64encode(thumbprint).decode('utf-8').rstrip("=")
 
         newAuthzJson = json.loads(jsonify(newAuthz))
-        print("newAuthJson @@@@@@@", newAuthzJson)
         findDNS01Challenge = next((challenge for challenge in newAuthzJson['challenges'] if challenge['type'] == 'dns-01'), None)
         dns01token = findDNS01Challenge.get('token')
-        print("debug findHttp01Challenge : ", findDNS01Challenge)
         challengeURL = findDNS01Challenge.get('url')
-        print("debug challengeURL : ", challengeURL)
 
         
         temp_keyAuthorization = f"{dns01token}.{thumbprint}"
@@ -565,27 +425,6 @@ def dns01_challenge(newOrder, newAuthz, newAuthzHeaders, newAccHeaders, key_priv
         f.write(resource)
         f.close()
 
-        """
-                # digest2= hashes.Hash(hashes.SHA256())
-        # digest2.update(temp_keyAuthorization.encode())
-        # thumbprint_hashed = digest2.finalize()#base64.urlsafe_b64encode(thumbprint).rstrip(b'=').decode('utf-8')
-        # thumbprint_hashed = base64.urlsafe_b64encode(thumbprint_hashed).rstrip(b'=')
-
-        # key_digested = hashlib.sha256(temp_keyAuthorization.encode('utf-8')).digest()
-        # key_digested_base64 = base64.urlsafe_b64encode(key_digested).decode('utf-8').strip("=")
-
-        #final_keyAuthorization = f"{dns01token}.{thumbprint_hashed}"
-
-        #dnsHandler_input = "_acme-challenge."+domains[0]+'. 300 IN TXT "'+ thumbprint_hashed+'"'
-
-        # f = open("dnsResource.txt", "w")
-        # f.write(dnsHandler_input)
-        # f.close()
-
-        # base = "http://localhost:5002"
-        # challenge_url = f"{base}/.well-known/acme-challenge/{token}"
-        
-        """
 
 
         headers = {"Content-type":"application/jose+json"}
@@ -639,7 +478,6 @@ def dns01_challenge(newOrder, newAuthz, newAuthzHeaders, newAccHeaders, key_priv
             while_timeout = time.time() +10
             while dns01Validation_request.json().get('status') is not "ready" and time.time() < while_timeout:
 
-                #print("http01Validation_request",http01Validation_request.json() )
                 newNonce  = json.loads(jsonify(dns01Validation_request.headers)).get('Replay-Nonce')
 
                 headers = {"Content-type":"application/jose+json"}
@@ -696,8 +534,6 @@ def csr(newOrder, newOrderHeader, http01Header, newAccHeaders,  key_priv, valida
 
     alternatives = x509.SubjectAlternativeName([x509.DNSName(name) for name in validated_domains]) #list of validated names
     
-    #domains = domains
-    
     #certificateRequestInfo
     subj = x509.Name([NameAttribute(NameOID.COMMON_NAME, validated_domains[0][0])])
     csr_input = x509.CertificateSigningRequestBuilder().subject_name(subj)
@@ -723,8 +559,7 @@ def csr(newOrder, newOrderHeader, http01Header, newAccHeaders,  key_priv, valida
 
 
     csrRequest = requests.post(url=csrURL, headers = headers, data=jws_final, verify=PEBBLE_CERTIFICATE_PATH)
-    print("csrRequest header", csrRequest.headers)
-    print("csrRequest text", csrRequest.text)
+
     if csrRequest:
         newNonce  = json.loads(jsonify(csrRequest.headers)).get('Replay-Nonce')
             
@@ -785,7 +620,6 @@ def downloadCertificate(newOrder, csrResponse, csrHeader, newAccHeaders,  key_pr
     locationKid = json.loads(jsonify(newAccHeaders)).get('Location')
     previousNonce = json.loads(jsonify(csrHeader)).get('Replay-Nonce') 
    
-    #previousNonce = json.loads(jsonify(newAccHeaders)).get('Replay-Nonce') 
 
     headers = {"Content-type":"application/jose+json"}
 
@@ -802,8 +636,6 @@ def downloadCertificate(newOrder, csrResponse, csrHeader, newAccHeaders,  key_pr
 
 
     downloadRequest = requests.post(url=downloadURL, headers = headers, data=jws_final, verify=PEBBLE_CERTIFICATE_PATH)
-    print("downloadRequest header", downloadRequest.headers)
-    print("downloadRequest text", downloadRequest.text)
     return downloadRequest, downloadRequest.headers, downloadRequest.text
 
 
@@ -936,21 +768,9 @@ if __name__ == "__main__":
 
     polling, pollingHeader, validated_domains = polling_multi(newOrder, newAccHeaders, newOrderHeaders, priv, domains)
 
-    # #newAuthz request
-    # newAuthz, newAuthzHeaders = acme_authorization_order(newOrder, newAccHeaders, newOrderHeaders, priv)
-    # print("5. newAuthz request response : ")
-    # print(newAuthz)
-
-    #challenging_text, challenging_header = challenge_relay(chall_type, newOrder, newAuthz, newAuthzHeaders, newAccHeaders, priv, pub, domains)
-
-    #dnsChalz, dnsChalzHeader = dns01_challenge(newOrder, newAuthz, newAuthzHeaders, newAccHeaders, priv, pub, domains)
-
-    #http01_chalz, http01Header =http01_challenge(newOrder, newAuthz,newAuthzHeaders, newAccHeaders, priv, pub) 
-    print("challenge FINAL RESPONSE")
+  
     print("text", polling)
     print("header", pollingHeader)
-
-    #print(urlChalzHeader)
 
     csr_request, csr_requestHeaders, newKey = csr(newOrder,newOrderHeaders, pollingHeader, newAccHeaders,  priv, validated_domains)
     print ("csr_request", csr_request)
@@ -997,13 +817,6 @@ if __name__ == "__main__":
     if arguments.revoke:
         revoked = revoke_certificate(newAccHeaders, downloadHeader, priv , certfile, directory)
         print(revoked)
-
-    
-    #http01_server.shutdown()
-
-    
-
-
 
 
 
